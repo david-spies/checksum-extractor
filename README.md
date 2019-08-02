@@ -36,8 +36,8 @@ The SHA-256 hash will populate on the GUI screen when retrieved.
 Currently working on additional automation within the code to incude a progress bar and built-in hash comparison. This will require copy and paste functionallity in order to compare hashes.
 
 
-Built with python and Tkinter
-Executable compiled with pyinstaller
+Built with python and Tkinter.
+Executable compiled with pyinstaller.
 
 
 Authors
