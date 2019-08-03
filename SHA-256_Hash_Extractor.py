@@ -16,6 +16,13 @@ def open_file():
     textbox = Label(root, text=(hasher.hexdigest()), font=('arial', 11), bd=4, relief=SUNKEN, anchor=CENTER)
     textbox.pack(side=TOP, fill=X)
 
+    f = filedialog.asksaveasfile(mode='w', defaultextension=".txt")
+    if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
+        return
+    text2save = str(hasher.hexdigest())
+    f.write(text2save)
+    f.close()
+
 
 root = tk.Tk()
 
