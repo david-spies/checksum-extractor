@@ -1,0 +1,2 @@
+
+---> Remove this note and place the hash string from the developers website into this file. <--
