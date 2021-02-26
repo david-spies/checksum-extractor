@@ -90,10 +90,20 @@ def get_file():
     text2save = str(hasher.hexdigest())
     f.write(text2save)
 
-    progress = Progressbar(root, length=200, mode="determinate", maximum=1, value=1)
-    progress.grid(column=1, row=5, padx=10, pady=10)
-
     messagebox.showinfo("File Compare", "File Compare processing...")
+
+    progress = Progressbar(root, length=200, mode="determinate", maximum=1, value=1)
+
+    import time
+    progress['value'] = 20
+    root.update_idletasks()
+    time.sleep(1)
+    progress['value'] = 60
+    root.update_idletasks()
+    time.sleep(1)
+    progress['value'] = 100
+
+    progress.grid(column=1, row=5, padx=10, pady=10)
 
     if str(hasher.hexdigest()) == open('compare.txt').read():
         textbox = Label(root, text='  Success  ', font=('arial', 10), fg="green", bd=6, relief=RAISED, anchor=CENTER)
@@ -125,10 +135,20 @@ def fetch_file():
     text2save = str(hasher.hexdigest())
     f.write(text2save)
 
-    progress = Progressbar(root, length=200, mode="determinate", maximum=1, value=1)
-    progress.grid(column=1, row=5, padx=10, pady=10)
-
     messagebox.showinfo("File Compare", "File Compare processing...")
+
+    progress = Progressbar(root, length=200, mode="determinate", maximum=1, value=1)
+
+    import time
+    progress['value'] = 20
+    root.update_idletasks()
+    time.sleep(1)
+    progress['value'] = 60
+    root.update_idletasks()
+    time.sleep(1)
+    progress['value'] = 100
+
+    progress.grid(column=1, row=5, padx=10, pady=10)
 
     if str(hasher.hexdigest()) == open('compare.txt').read():
         textbox = Label(root, text='  Success  ', font=('arial', 10), fg="green", bd=6, relief=RAISED, anchor=CENTER)
