@@ -126,7 +126,9 @@ The browser version retains full feature parity and adds drag-and-drop, inline c
 
 ## License
 
-Open source. Free to use, modify, and distribute.
+Distributed under the **MIT License**. See [`LICENSE`](https://github.com/david-spies/chksum-extractor/blob/master/LICENSE) for full details.
+| Copyright © 2026 David Spies
+| Open source. Free to use, modify, and distribute.
 
 ---
 
