@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHKSUM // HASH EXTRACTOR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap');
+
+  :root {
+    --green: #39ff14;
+    --green-dim: #1a7a09;
+    --green-glow: rgba(57, 255, 20, 0.4);
+    --slate: #2d3a4a;
+    --slate-light: #3d5166;
+    --slate-blue: #4a6fa5;
+    --gray: #8899aa;
+    --gray-dark: #1a1e24;
+    --black: #050709;
+    --white: #e8f0f8;
+    --red: #ff2442;
+    --amber: #ffa500;
+    --scanline-color: rgba(0, 255, 60, 0.03);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* CRT scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scanline-color) 2px,
+      var(--scanline-color) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanroll 12s linear infinite;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  @keyframes scanroll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100vh; }
+  }
+
+  @keyframes glitch {
+    0%, 90%, 100% { clip-path: none; transform: translate(0); }
+    92% { clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%); transform: translate(-4px, 0); }
+    94% { clip-path: polygon(0 60%, 100% 60%, 100% 70%, 0 70%); transform: translate(4px, 0); }
+    96% { clip-path: polygon(0 40%, 100% 40%, 100% 50%, 0 50%); transform: translate(-2px, 0); }
+  }
+
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.7; }
+    97% { opacity: 1; }
+    98% { opacity: 0.85; }
+  }
+
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  @keyframes scanline-sweep {
+    0% { top: -10%; }
+    100% { top: 110%; }
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 6px var(--green-glow), inset 0 0 6px rgba(57,255,20,0.05); }
+    50% { box-shadow: 0 0 18px var(--green-glow), inset 0 0 14px rgba(57,255,20,0.1); }
+  }
+
+  @keyframes progress-fill {
+    from { width: 0%; }
+    to { width: var(--target-width, 100%); }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes noise-shift {
+    0% { background-position: 0 0; }
+    10% { background-position: -5% -10%; }
+    30% { background-position: 3% 5%; }
+    50% { background-position: -1% -2%; }
+    70% { background-position: 2% 8%; }
+    100% { background-position: 0 0; }
+  }
+
+  /* HEADER */
+  .header {
+    padding: 28px 48px 20px;
+    border-bottom: 1px solid var(--green-dim);
+    position: relative;
+    overflow: hidden;
+    animation: flicker 8s infinite;
+  }
+
+  .header-sweep {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    animation: scanline-sweep 4s ease-in-out infinite;
+    opacity: 0.4;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .logo-block {}
+
+  .logo-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(57,255,20,0.2);
+    letter-spacing: 0.12em;
+    animation: glitch 7s infinite;
+    line-height: 1;
+  }
+
+  .logo-subtitle {
+    font-family: 'VT323', monospace;
+    font-size: 1.1rem;
+    color: var(--slate-blue);
+    letter-spacing: 0.3em;
+    margin-top: 4px;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-size: 0.72rem;
+    color: var(--gray);
+    line-height: 1.8;
+  }
+
+  .header-meta .live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 6px;
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 1.2s infinite;
+  }
+
+  .classify-banner {
+    margin-top: 14px;
+    font-size: 0.68rem;
+    color: var(--green-dim);
+    letter-spacing: 0.25em;
+    border-top: 1px solid var(--green-dim);
+    padding-top: 8px;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0;
+    padding: 32px 48px;
+    min-height: calc(100vh - 180px);
+  }
+
+  /* PANEL */
+  .panel {
+    border: 1px solid var(--green-dim);
+    position: relative;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(10,18,12,0.95) 0%, rgba(5,7,9,0.98) 100%);
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .panel-label {
+    position: absolute;
+    top: -1px; left: 20px;
+    background: var(--black);
+    padding: 0 8px;
+    font-size: 0.65rem;
+    color: var(--slate-blue);
+    letter-spacing: 0.3em;
+    transform: translateY(-50%);
+  }
+
+  /* INPUT PANEL (left top) */
+  .panel-input {
+    grid-column: 1;
+    grid-row: 1;
+    border-right: none;
+    border-bottom: none;
+    animation: pulse-border 4s ease-in-out infinite;
+  }
+
+  /* ALGORITHM PANEL (right top) */
+  .panel-algo {
+    grid-column: 2;
+    grid-row: 1;
+    border-bottom: none;
+  }
+
+  /* OUTPUT PANEL (left bottom) */
+  .panel-output {
+    grid-column: 1;
+    grid-row: 2;
+    border-right: none;
+  }
+
+  /* COMPARE PANEL (right bottom) */
+  .panel-compare {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 1px dashed var(--green-dim);
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+    background: rgba(57, 255, 20, 0.02);
+    margin-top: 10px;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--green);
+    background: rgba(57, 255, 20, 0.06);
+    box-shadow: inset 0 0 30px rgba(57, 255, 20, 0.05);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    font-size: 2.5rem;
+    color: var(--green-dim);
+    display: block;
+    margin-bottom: 12px;
+    font-family: 'VT323', monospace;
+    line-height: 1;
+  }
+
+  .drop-text {
+    font-size: 0.8rem;
+    color: var(--gray);
+    line-height: 1.8;
+  }
+
+  .drop-text strong {
+    color: var(--green);
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+  }
+
+  .file-types {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+
+  .file-tag {
+    padding: 3px 10px;
+    border: 1px solid var(--slate-light);
+    font-size: 0.65rem;
+    color: var(--slate-blue);
+    letter-spacing: 0.15em;
+    background: rgba(74, 111, 165, 0.08);
+  }
+
+  .selected-file {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(57, 255, 20, 0.04);
+    border-left: 2px solid var(--green);
+    font-size: 0.78rem;
+    color: var(--white);
+    word-break: break-all;
+    display: none;
+  }
+
+  .selected-file.visible { display: block; animation: fadeInUp 0.3s ease; }
+
+  /* ALGORITHM BUTTONS */
+  .algo-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .algo-btn {
+    padding: 16px 20px;
+    background: transparent;
+    border: 1px solid var(--slate-light);
+    color: var(--gray);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .algo-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--slate-blue);
+    transition: all 0.2s;
+  }
+
+  .algo-btn:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(57, 255, 20, 0.04);
+  }
+
+  .algo-btn:hover::before { background: var(--green); width: 4px; }
+
+  .algo-btn.active {
+    border-color: var(--green);
+    color: var(--green);
+    background: rgba(57, 255, 20, 0.07);
+    box-shadow: 0 0 12px rgba(57, 255, 20, 0.15);
+  }
+
+  .algo-btn.active::before { background: var(--green); width: 4px; box-shadow: 0 0 8px var(--green); }
+
+  .algo-btn.active .algo-status { color: var(--green); }
+
+  .algo-name { font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 700; }
+  .algo-desc { font-size: 0.65rem; color: var(--gray); margin-top: 2px; }
+  .algo-status { font-size: 0.65rem; color: var(--slate-blue); letter-spacing: 0.2em; }
+
+  /* EXECUTE BUTTON */
+  .execute-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    background: transparent;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .execute-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(57,255,20,0.08), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+
+  .execute-btn:hover { border-color: var(--green); box-shadow: 0 0 20px rgba(57,255,20,0.2); }
+  .execute-btn:hover::after { transform: translateX(100%); }
+  .execute-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .execute-btn:disabled:hover { box-shadow: none; }
+  .execute-btn:disabled::after { display: none; }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    margin-top: 16px;
+    display: none;
+  }
+  .progress-wrap.visible { display: block; animation: fadeInUp 0.3s ease; }
+
+  .progress-label {
+    font-size: 0.65rem;
+    color: var(--slate-blue);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--gray-dark);
+    border: 1px solid var(--green-dim);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-dim), var(--green));
+    box-shadow: 0 0 10px var(--green-glow);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  /* OUTPUT */
+  .hash-display {
+    margin-top: 10px;
+    padding: 16px;
+    background: rgba(5, 7, 9, 0.9);
+    border: 1px solid var(--green-dim);
+    min-height: 80px;
+    position: relative;
+    word-break: break-all;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--green);
+    letter-spacing: 0.05em;
+    transition: all 0.3s;
+  }
+
+  .hash-display.has-data {
+    border-color: var(--green);
+    box-shadow: 0 0 16px rgba(57, 255, 20, 0.15);
+    text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
+  }
+
+  .hash-placeholder {
+    color: var(--green-dim);
+    font-style: normal;
+    letter-spacing: 0.1em;
+  }
+
+  .hash-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 9px 12px;
+    background: transparent;
+    border: 1px solid var(--slate-light);
+    color: var(--gray);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .action-btn:hover { border-color: var(--slate-blue); color: var(--white); background: rgba(74, 111, 165, 0.1); }
+  .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .hash-meta {
+    font-size: 0.65rem;
+    color: var(--gray);
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .hash-meta span { color: var(--slate-blue); }
+
+  /* COMPARE */
+  .compare-input-wrap {
+    margin-top: 10px;
+  }
+
+  .compare-label {
+    font-size: 0.7rem;
+    color: var(--gray);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+
+  .compare-textarea {
+    width: 100%;
+    min-height: 80px;
+    background: rgba(5, 7, 9, 0.9);
+    border: 1px solid var(--slate-light);
+    color: var(--white);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+    letter-spacing: 0.05em;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+
+  .compare-textarea:focus { border-color: var(--slate-blue); }
+  .compare-textarea::placeholder { color: var(--green-dim); }
+
+  .compare-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--slate-blue);
+    color: var(--slate-blue);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .compare-btn:hover { border-color: var(--white); color: var(--white); background: rgba(74, 111, 165, 0.1); }
+  .compare-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* VERDICT */
+  .verdict {
+    margin-top: 14px;
+    padding: 16px;
+    text-align: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    border: 1px solid transparent;
+    display: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .verdict.visible { display: block; animation: fadeInUp 0.4s ease; }
+
+  .verdict.success {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(57, 255, 20, 0.06);
+    box-shadow: 0 0 24px rgba(57, 255, 20, 0.2);
+    text-shadow: 0 0 16px var(--green);
+  }
+
+  .verdict.fail {
+    color: var(--red);
+    border-color: var(--red);
+    background: rgba(255, 36, 66, 0.06);
+    box-shadow: 0 0 24px rgba(255, 36, 66, 0.2);
+    text-shadow: 0 0 16px var(--red);
+  }
+
+  .verdict::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: -100%;
+    width: 300%;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.15;
+    transform: rotate(-1deg);
+  }
+
+  .verdict-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    margin-top: 6px;
+    opacity: 0.7;
+    letter-spacing: 0.2em;
+    font-weight: 400;
+  }
+
+  /* STATUS BAR */
+  .statusbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(5, 7, 9, 0.98);
+    border-top: 1px solid var(--green-dim);
+    padding: 6px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.65rem;
+    color: var(--gray);
+    z-index: 100;
+  }
+
+  .statusbar-left { display: flex; gap: 24px; }
+  .statusbar-item { letter-spacing: 0.1em; }
+  .statusbar-item .key { color: var(--green-dim); }
+  .statusbar-item .val { color: var(--white); }
+
+  .status-msg {
+    color: var(--slate-blue);
+    letter-spacing: 0.12em;
+    transition: color 0.3s;
+  }
+
+  .status-msg.active { color: var(--green); }
+
+  /* COPY FEEDBACK */
+  .copy-feedback {
+    position: fixed;
+    bottom: 40px;
+    right: 48px;
+    padding: 10px 20px;
+    background: var(--black);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .copy-feedback.show { opacity: 1; transform: translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--green-dim); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; padding: 20px; }
+    .panel-input, .panel-algo, .panel-output, .panel-compare {
+      grid-column: 1; border-right: 1px solid var(--green-dim);
+    }
+    .panel-input, .panel-algo { border-bottom: none; }
+    .header { padding: 20px 20px 16px; }
+    .logo-title { font-size: 1.5rem; }
+    .statusbar { padding: 6px 20px; font-size: 0.6rem; }
+  }
+
+  /* Glitch text effect for special states */
+  .glitch-text {
+    position: relative;
+  }
+  .glitch-text::before, .glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .glitch-text::before {
+    color: #ff0040;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    transform: translateX(-2px);
+    animation: glitch 3s infinite step-start;
+    opacity: 0.7;
+  }
+  .glitch-text::after {
+    color: #0088ff;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    transform: translateX(2px);
+    animation: glitch 3s 0.5s infinite step-start;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-sweep"></div>
+  <div class="header-top">
+    <div class="logo-block">
+      <div class="logo-title glitch-text" data-text="CHKSUM">CHKSUM</div>
+      <div class="logo-subtitle">// CRYPTOGRAPHIC HASH EXTRACTOR v2.0 //</div>
+    </div>
+    <div class="header-meta">
+      <div><span class="live-dot"></span>SYSTEM ONLINE</div>
+      <div id="live-time">--:--:-- UTC</div>
+      <div>NODE // LOCALHOST</div>
+    </div>
+  </div>
+  <div class="classify-banner">
+    ▓ AUTHORIZED USE ONLY &nbsp;|&nbsp; SHA-256 &nbsp;·&nbsp; SHA-512 &nbsp;·&nbsp; MD5 &nbsp;|&nbsp; INTEGRITY VERIFICATION SYSTEM &nbsp;|&nbsp; SIGNATURE ANALYSIS MODULE ACTIVE ▓
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- INPUT PANEL -->
+  <div class="panel panel-input">
+    <div class="panel-label">// TARGET FILE</div>
+    <p style="font-size:0.72rem; color:var(--gray); letter-spacing:0.1em; line-height:1.7;">
+      DROP OR SELECT FILE FOR HASH EXTRACTION.<br>SUPPORTED: .exe &nbsp;·&nbsp; .msi &nbsp;·&nbsp; .iso &nbsp;·&nbsp; ALL FILES
+    </p>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".exe,.msi,.iso,*">
+      <span class="drop-icon">▤</span>
+      <div class="drop-text">
+        <strong>DRAG &amp; DROP TARGET</strong>
+        or click to browse filesystem
+      </div>
+      <div class="file-types">
+        <span class="file-tag">.EXE</span>
+        <span class="file-tag">.MSI</span>
+        <span class="file-tag">.ISO</span>
+        <span class="file-tag">.*</span>
+      </div>
+    </div>
+
+    <div class="selected-file" id="selectedFile">
+      <span style="color:var(--slate-blue); font-size:0.65rem; letter-spacing:0.2em;">LOADED:</span><br>
+      <span id="selectedFileName"></span><br>
+      <span id="selectedFileSize" style="color:var(--gray); font-size:0.72rem;"></span>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <span id="progressLabel">PROCESSING</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALGORITHM PANEL -->
+  <div class="panel panel-algo">
+    <div class="panel-label">// ALGORITHM SELECT</div>
+
+    <div class="algo-grid">
+      <button class="algo-btn active" id="btn-sha256" onclick="selectAlgo('sha256')">
+        <div>
+          <div class="algo-name">SHA-256</div>
+          <div class="algo-desc">256-bit secure hash · recommended</div>
+        </div>
+        <div class="algo-status">SELECTED</div>
+      </button>
+      <button class="algo-btn" id="btn-sha512" onclick="selectAlgo('sha512')">
+        <div>
+          <div class="algo-name">SHA-512</div>
+          <div class="algo-desc">512-bit secure hash · high security</div>
+        </div>
+        <div class="algo-status">STANDBY</div>
+      </button>
+      <button class="algo-btn" id="btn-md5" onclick="selectAlgo('md5')">
+        <div>
+          <div class="algo-name">MD5</div>
+          <div class="algo-desc">128-bit hash · legacy compat</div>
+        </div>
+        <div class="algo-status">STANDBY</div>
+      </button>
+    </div>
+
+    <button class="execute-btn" id="executeBtn" onclick="runHash()" disabled>
+      ▶ &nbsp; EXECUTE HASH EXTRACTION
+    </button>
+
+    <div style="margin-top:14px; font-size:0.65rem; color:var(--green-dim); line-height:1.8; letter-spacing:0.1em;">
+      ⚠ LARGE FILES (2GB+) MAY TAKE 30–60s TO PROCESS<br>
+      ⚠ ALL PROCESSING OCCURS CLIENT-SIDE · ZERO UPLOAD
+    </div>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="panel panel-output">
+    <div class="panel-label">// EXTRACTED HASH</div>
+
+    <div class="hash-display" id="hashDisplay">
+      <span class="hash-placeholder" id="hashPlaceholder">AWAITING EXTRACTION... _</span>
+      <span id="hashValue" style="display:none;"></span>
+    </div>
+
+    <div class="hash-meta" id="hashMeta" style="display:none;">
+      <span>ALGO: <span id="metaAlgo">—</span></span>
+      <span>BITS: <span id="metaBits">—</span></span>
+      <span>CHARS: <span id="metaChars">—</span></span>
+    </div>
+
+    <div class="hash-actions">
+      <button class="action-btn" id="copyBtn" onclick="copyHash()" disabled>⊕ COPY HASH</button>
+      <button class="action-btn" id="saveBtn" onclick="saveHash()" disabled>⬇ SAVE .TXT</button>
+    </div>
+  </div>
+
+  <!-- COMPARE PANEL -->
+  <div class="panel panel-compare">
+    <div class="panel-label">// SIGNATURE VERIFY</div>
+
+    <div class="compare-input-wrap">
+      <div class="compare-label">PASTE DEVELOPER'S PUBLISHED HASH:</div>
+      <textarea class="compare-textarea" id="compareInput" placeholder="paste reference hash from developer website..."></textarea>
+    </div>
+
+    <button class="compare-btn" id="compareBtn" onclick="compareHashes()" disabled>
+      ◈ &nbsp; RUN SIGNATURE COMPARISON
+    </button>
+
+    <div class="verdict" id="verdict">
+      <div id="verdictText"></div>
+      <div class="verdict-sub" id="verdictSub"></div>
+    </div>
+
+    <div style="margin-top:14px; font-size:0.65rem; color:var(--green-dim); line-height:1.8; letter-spacing:0.1em;" id="compareHint">
+      ► EXTRACT HASH FIRST, THEN PASTE REFERENCE<br>
+      ► COMPARISON IS CASE-INSENSITIVE
+    </div>
+  </div>
+
+</main>
+
+<div class="statusbar">
+  <div class="statusbar-left">
+    <div class="statusbar-item"><span class="key">ALG//</span> <span class="val" id="sb-algo">SHA-256</span></div>
+    <div class="statusbar-item"><span class="key">FILE//</span> <span class="val" id="sb-file">NONE</span></div>
+    <div class="statusbar-item"><span class="key">STATE//</span> <span class="val" id="sb-state">IDLE</span></div>
+  </div>
+  <div class="status-msg" id="statusMsg">CHKSUM HASH EXTRACTOR · READY</div>
+</div>
+
+<div class="copy-feedback" id="copyFeedback">HASH COPIED TO CLIPBOARD</div>
+
+<script>
+// ─── SubtleCrypto SHA-256 / SHA-512 ───────────────────────────────────────────
+// MD5 via pure JS implementation
+function md5(buffer) {
+  // RFC 1321 MD5
+  function safeAdd(x, y) { const lsw=(x&0xffff)+(y&0xffff); return ((x>>16)+(y>>16)+(lsw>>16))<<16|lsw&0xffff; }
+  function bitRotateLeft(num, cnt) { return num<<cnt|num>>>32-cnt; }
+  function md5cmn(q,a,b,x,s,t) { return safeAdd(bitRotateLeft(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b); }
+  function md5ff(a,b,c,d,x,s,t) { return md5cmn(b&c|~b&d,a,b,x,s,t); }
+  function md5gg(a,b,c,d,x,s,t) { return md5cmn(b&d|c&~d,a,b,x,s,t); }
+  function md5hh(a,b,c,d,x,s,t) { return md5cmn(b^c^d,a,b,x,s,t); }
+  function md5ii(a,b,c,d,x,s,t) { return md5cmn(c^(b|~d),a,b,x,s,t); }
+
+  const bytes = new Uint8Array(buffer);
+  const len8 = bytes.length;
+  const extra = (64 - (len8 + 9) % 64) % 64;
+  const padded = new Uint8Array(len8 + 9 + extra);
+  padded.set(bytes);
+  padded[len8] = 0x80;
+  const lenBits = BigInt(len8 * 8);
+  for (let i = 0; i < 8; i++) padded[padded.length - 8 + i] = Number((lenBits >> BigInt(8*i)) & 0xffn);
+
+  const words = new Int32Array(padded.buffer);
+  let a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476;
+
+  for (let i = 0; i < words.length; i += 16) {
+    const M = words.slice(i, i+16);
+    let [aa,bb,cc,dd] = [a,b,c,d];
+    a=md5ff(a,b,c,d,M[0],7,-680876936);d=md5ff(d,a,b,c,M[1],12,-389564586);c=md5ff(c,d,a,b,M[2],17,606105819);b=md5ff(b,c,d,a,M[3],22,-1044525330);
+    a=md5ff(a,b,c,d,M[4],7,-176418897);d=md5ff(d,a,b,c,M[5],12,1200080426);c=md5ff(c,d,a,b,M[6],17,-1473231341);b=md5ff(b,c,d,a,M[7],22,-45705983);
+    a=md5ff(a,b,c,d,M[8],7,1770035416);d=md5ff(d,a,b,c,M[9],12,-1958414417);c=md5ff(c,d,a,b,M[10],17,-42063);b=md5ff(b,c,d,a,M[11],22,-1990404162);
+    a=md5ff(a,b,c,d,M[12],7,1804603682);d=md5ff(d,a,b,c,M[13],12,-40341101);c=md5ff(c,d,a,b,M[14],17,-1502002290);b=md5ff(b,c,d,a,M[15],22,1236535329);
+    a=md5gg(a,b,c,d,M[1],5,-165796510);d=md5gg(d,a,b,c,M[6],9,-1069501632);c=md5gg(c,d,a,b,M[11],14,643717713);b=md5gg(b,c,d,a,M[0],20,-373897302);
+    a=md5gg(a,b,c,d,M[5],5,-701558691);d=md5gg(d,a,b,c,M[10],9,38016083);c=md5gg(c,d,a,b,M[15],14,-660478335);b=md5gg(b,c,d,a,M[4],20,-405537848);
+    a=md5gg(a,b,c,d,M[9],5,568446438);d=md5gg(d,a,b,c,M[14],9,-1019803690);c=md5gg(c,d,a,b,M[3],14,-187363961);b=md5gg(b,c,d,a,M[8],20,1163531501);
+    a=md5gg(a,b,c,d,M[13],5,-1444681467);d=md5gg(d,a,b,c,M[2],9,-51403784);c=md5gg(c,d,a,b,M[7],14,1735328473);b=md5gg(b,c,d,a,M[12],20,-1926607734);
+    a=md5hh(a,b,c,d,M[5],4,-378558);d=md5hh(d,a,b,c,M[8],11,-2022574463);c=md5hh(c,d,a,b,M[11],16,1839030562);b=md5hh(b,c,d,a,M[14],23,-35309556);
+    a=md5hh(a,b,c,d,M[1],4,-1530992060);d=md5hh(d,a,b,c,M[4],11,1272893353);c=md5hh(c,d,a,b,M[7],16,-155497632);b=md5hh(b,c,d,a,M[10],23,-1094730640);
+    a=md5hh(a,b,c,d,M[13],4,681279174);d=md5hh(d,a,b,c,M[0],11,-358537222);c=md5hh(c,d,a,b,M[3],16,-722521979);b=md5hh(b,c,d,a,M[6],23,76029189);
+    a=md5hh(a,b,c,d,M[9],4,-640364487);d=md5hh(d,a,b,c,M[12],11,-421815835);c=md5hh(c,d,a,b,M[15],16,530742520);b=md5hh(b,c,d,a,M[2],23,-995338651);
+    a=md5ii(a,b,c,d,M[0],6,-198630844);d=md5ii(d,a,b,c,M[7],10,1126891415);c=md5ii(c,d,a,b,M[14],15,-1416354905);b=md5ii(b,c,d,a,M[5],21,-57434055);
+    a=md5ii(a,b,c,d,M[12],6,1700485571);d=md5ii(d,a,b,c,M[3],10,-1894986606);c=md5ii(c,d,a,b,M[10],15,-1051523);b=md5ii(b,c,d,a,M[1],21,-2054922799);
+    a=md5ii(a,b,c,d,M[8],6,1873313359);d=md5ii(d,a,b,c,M[15],10,-30611744);c=md5ii(c,d,a,b,M[6],15,-1560198380);b=md5ii(b,c,d,a,M[13],21,1309151649);
+    a=md5ii(a,b,c,d,M[4],6,-145523070);d=md5ii(d,a,b,c,M[11],10,-1120210379);c=md5ii(c,d,a,b,M[2],15,718787259);b=md5ii(b,c,d,a,M[9],21,-343485551);
+    a=safeAdd(a,aa); b=safeAdd(b,bb); c=safeAdd(c,cc); d=safeAdd(d,dd);
+  }
+
+  const out = new Uint8Array(16);
+  const dv = new DataView(out.buffer);
+  dv.setInt32(0, a, true); dv.setInt32(4, b, true); dv.setInt32(8, c, true); dv.setInt32(12, d, true);
+  return Array.from(out).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let selectedAlgo = 'sha256';
+let currentFile = null;
+let currentHash = null;
+
+// ─── Live clock ───────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-time').textContent = now.toUTCString().slice(17,25) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Algo select ──────────────────────────────────────────────────────────────
+function selectAlgo(algo) {
+  selectedAlgo = algo;
+  ['sha256','sha512','md5'].forEach(a => {
+    const btn = document.getElementById('btn-' + a);
+    const isActive = a === algo;
+    btn.classList.toggle('active', isActive);
+    btn.querySelector('.algo-status').textContent = isActive ? 'SELECTED' : 'STANDBY';
+  });
+  document.getElementById('sb-algo').textContent = algo.toUpperCase().replace('SHA','SHA-');
+  setStatus('ALGORITHM SET: ' + algo.toUpperCase(), true);
+}
+
+// ─── File input ───────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  handleFile(e.target.files[0]);
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  currentFile = file;
+  currentHash = null;
+
+  const sfEl = document.getElementById('selectedFile');
+  document.getElementById('selectedFileName').textContent = file.name;
+  document.getElementById('selectedFileSize').textContent =
+    'SIZE: ' + formatSize(file.size) + ' · TYPE: ' + (file.type || 'unknown');
+  sfEl.classList.add('visible');
+
+  document.getElementById('executeBtn').disabled = false;
+  document.getElementById('sb-file').textContent = file.name.length > 20 ? file.name.slice(0,18)+'…' : file.name;
+  setStatus('FILE LOADED: ' + file.name, true);
+  resetOutput();
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  if (bytes < 1024*1024*1024) return (bytes/(1024*1024)).toFixed(2) + ' MB';
+  return (bytes/(1024*1024*1024)).toFixed(2) + ' GB';
+}
+
+// ─── Hash computation ─────────────────────────────────────────────────────────
+async function runHash() {
+  if (!currentFile) return;
+
+  setStatus('READING FILE...', true);
+  document.getElementById('sb-state').textContent = 'PROCESSING';
+  document.getElementById('executeBtn').disabled = true;
+
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progressFill');
+  const pp = document.getElementById('progressPct');
+  const pl = document.getElementById('progressLabel');
+
+  pw.classList.add('visible');
+  pl.textContent = 'READING FILE';
+  setProgress(pf, pp, 10);
+
+  try {
+    const buffer = await readFileAsBuffer(currentFile, (pct) => {
+      setProgress(pf, pp, Math.round(pct * 60));
+      if (pct > 0.3) pl.textContent = 'HASHING';
+    });
+
+    setProgress(pf, pp, 70);
+    pl.textContent = 'COMPUTING ' + selectedAlgo.toUpperCase();
+    setStatus('COMPUTING HASH...', true);
+
+    let hex;
+    if (selectedAlgo === 'md5') {
+      hex = md5(buffer);
+    } else {
+      const algoName = selectedAlgo === 'sha256' ? 'SHA-256' : 'SHA-512';
+      const hashBuf = await crypto.subtle.digest(algoName, buffer);
+      hex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    setProgress(pf, pp, 100);
+    pl.textContent = 'COMPLETE';
+
+    currentHash = hex;
+    displayHash(hex);
+    document.getElementById('sb-state').textContent = 'HASH READY';
+    setStatus('EXTRACTION COMPLETE · ' + hex.length + ' HEX CHARS', true);
+
+  } catch(err) {
+    setStatus('ERROR: ' + err.message, false);
+    document.getElementById('sb-state').textContent = 'ERROR';
+    document.getElementById('executeBtn').disabled = false;
+    setProgress(pf, pp, 0);
+  }
+}
+
+function setProgress(fill, pct, val) {
+  fill.style.width = val + '%';
+  pct.textContent = val + '%';
+}
+
+function readFileAsBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('FILE READ ERROR'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function displayHash(hex) {
+  const display = document.getElementById('hashDisplay');
+  document.getElementById('hashPlaceholder').style.display = 'none';
+  const hv = document.getElementById('hashValue');
+  hv.style.display = 'inline';
+  hv.textContent = hex;
+  display.classList.add('has-data');
+
+  // Meta
+  const bits = { sha256: 256, sha512: 512, md5: 128 };
+  document.getElementById('hashMeta').style.display = 'flex';
+  document.getElementById('metaAlgo').textContent = selectedAlgo.toUpperCase().replace('SHA','SHA-');
+  document.getElementById('metaBits').textContent = bits[selectedAlgo];
+  document.getElementById('metaChars').textContent = hex.length;
+
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('saveBtn').disabled = false;
+  document.getElementById('compareBtn').disabled = false;
+  document.getElementById('executeBtn').disabled = false;
+}
+
+function resetOutput() {
+  const display = document.getElementById('hashDisplay');
+  document.getElementById('hashPlaceholder').style.display = 'inline';
+  const hv = document.getElementById('hashValue');
+  hv.style.display = 'none';
+  hv.textContent = '';
+  display.classList.remove('has-data');
+  document.getElementById('hashMeta').style.display = 'none';
+  document.getElementById('copyBtn').disabled = true;
+  document.getElementById('saveBtn').disabled = true;
+  document.getElementById('compareBtn').disabled = true;
+  document.getElementById('progressWrap').classList.remove('visible');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('verdict').classList.remove('visible','success','fail');
+}
+
+// ─── Copy ─────────────────────────────────────────────────────────────────────
+function copyHash() {
+  if (!currentHash) return;
+  navigator.clipboard.writeText(currentHash).then(() => {
+    const fb = document.getElementById('copyFeedback');
+    fb.classList.add('show');
+    setTimeout(() => fb.classList.remove('show'), 2000);
+    setStatus('HASH COPIED TO CLIPBOARD', true);
+  });
+}
+
+// ─── Save ─────────────────────────────────────────────────────────────────────
+function saveHash() {
+  if (!currentHash) return;
+  const filename = (currentFile ? currentFile.name.replace(/\.[^.]+$/,'') : 'hash') + '_' + selectedAlgo + '.txt';
+  const blob = new Blob([currentHash], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  setStatus('HASH SAVED: ' + filename, true);
+}
+
+// ─── Compare ──────────────────────────────────────────────────────────────────
+function compareHashes() {
+  if (!currentHash) return;
+  const ref = document.getElementById('compareInput').value.trim().toLowerCase();
+  const extracted = currentHash.toLowerCase();
+
+  const verdict = document.getElementById('verdict');
+  const vt = document.getElementById('verdictText');
+  const vs = document.getElementById('verdictSub');
+
+  verdict.classList.remove('visible','success','fail');
+
+  setTimeout(() => {
+    if (!ref) {
+      setStatus('ERROR: NO REFERENCE HASH PROVIDED', false);
+      return;
+    }
+
+    const match = ref === extracted;
+    verdict.classList.add('visible', match ? 'success' : 'fail');
+
+    if (match) {
+      vt.textContent = '✓ SIGNATURE MATCH';
+      vs.textContent = 'INTEGRITY VERIFIED · HASH CONFIRMED AUTHENTIC';
+      setStatus('VERIFICATION COMPLETE: MATCH CONFIRMED', true);
+      document.getElementById('sb-state').textContent = 'VERIFIED';
+    } else {
+      vt.textContent = '✗ SIGNATURE MISMATCH';
+      vs.textContent = 'WARNING: HASH DOES NOT MATCH · FILE MAY BE COMPROMISED';
+      setStatus('VERIFICATION COMPLETE: MISMATCH DETECTED', false);
+      document.getElementById('sb-state').textContent = 'MISMATCH';
+    }
+  }, 80);
+}
+
+// ─── Status ───────────────────────────────────────────────────────────────────
+function setStatus(msg, active) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.classList.toggle('active', active);
+}
+</script>
+</body>
+</html>
