@@ -3,8 +3,8 @@
 # CHKSUM HASH // EXTRACTOR
 ### Cryptographic Hash Extraction & Signature Verification Tool
 
-```
-▓ AUTHORIZED USE ONLY | SHA-256 · SHA-512 · MD5 | INTEGRITY VERIFICATION SYSTEM ▓
+```diff
++ ▓ AUTHORIZED USE ONLY | SHA-256 · SHA-512 · MD5 | INTEGRITY VERIFICATION SYSTEM ▓
 ```
 
 A modern, browser-based cryptographic hash extractor rebuilt from a Python/Tkinter original. Drop any file, extract its hash, and verify it against a developer-published signature — all client-side with zero uploads, zero dependencies, and zero installs.
@@ -16,7 +16,7 @@ A modern, browser-based cryptographic hash extractor rebuilt from a Python/Tkint
 - **Three Hash Algorithms** — SHA-256, SHA-512, and MD5 available on demand
 - **Drag & Drop or Browse** — supports `.exe`, `.msi`, `.iso`, and all file types
 - **100% Client-Side** — all hashing is performed in your browser via the Web Crypto API and pure JavaScript; no file data ever leaves your machine
-- **Signature Comparison** — paste a developer's published hash and run an instant verification check for a `✓ MATCH` or `✗ MISMATCH` verdict
+- **Signature Comparison** — paste a developer's published hash and run an instant verification check for a verified match or mismatch verdict
 - **Copy & Export** — copy the extracted hash to clipboard or download it as a named `.txt` file
 - **Live Progress Tracking** — real-time progress bar during file read and hash computation
 - **Tech-Noir UI** — CRT scanline effects, glitch animations, solarized-green on black, slate blue accents, and monospace typography
@@ -26,12 +26,15 @@ A modern, browser-based cryptographic hash extractor rebuilt from a Python/Tkint
 ## Usage
 
 ### 1. Open the App
+
 Open `checksum-extractor.html` in any modern browser. No server required.
 
 ### 2. Load a Target File
+
 Drag and drop your file onto the drop zone, or click to open a file browser. Supported types: `.exe` `.msi` `.iso` and all others.
 
 ### 3. Select an Algorithm
+
 Choose from the algorithm panel on the right:
 
 | Algorithm | Output Length | Use Case |
@@ -41,17 +44,20 @@ Choose from the algorithm panel on the right:
 | **MD5** | 32 hex chars | Legacy compatibility |
 
 ### 4. Execute Extraction
+
 Click **▶ EXECUTE HASH EXTRACTION**. A progress bar will track the read and computation. Large files (2 GB+) may take 30–60 seconds.
 
 ### 5. Copy or Save the Hash
+
 Once complete, use **⊕ COPY HASH** to copy to clipboard or **⬇ SAVE .TXT** to download a text file named after your target file and algorithm (e.g., `kali-linux_sha256.txt`).
 
 ### 6. Verify the Signature
+
 Paste the developer's published hash into the **SIGNATURE VERIFY** panel and click **◈ RUN SIGNATURE COMPARISON**. The comparison is case-insensitive.
 
-```
-✓ SIGNATURE MATCH     → File is authentic and unmodified
-✗ SIGNATURE MISMATCH  → File may be corrupted or tampered with
+```diff
++ ✓ SIGNATURE MATCH     → File is authentic and unmodified
+- ✗ SIGNATURE MISMATCH  → File may be corrupted or tampered with
 ```
 
 ---
@@ -124,6 +130,6 @@ Open source. Free to use, modify, and distribute.
 
 ---
 
-```
-// END OF DOCUMENT — CHKSUM v2.0 — SYSTEM READY ▓
+```diff
++ // END OF DOCUMENT — CHKSUM v2.0 — SYSTEM READY ▓
 ```
