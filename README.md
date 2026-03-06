@@ -1,3 +1,5 @@
+<img width="1280" height="633" alt="chksum_extractor_" src="https://github.com/user-attachments/assets/606c7ff9-474a-4c50-b957-c7e80d79bc62" />
+
 # CHKSUM HASH // EXTRACTOR
 ### Cryptographic Hash Extraction & Signature Verification Tool
 
